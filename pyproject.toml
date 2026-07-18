@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-placeholder-detector"
+version = "1.0.0"
+description = "Find unfinished placeholders and deceptive scaffolding before software ships."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Logan Pendragon Multiverse" }]
+keywords = ["placeholder", "audit", "ai", "quality"]
+
+[project.scripts]
+placeholder-detector = "placeholder_detector.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/loganpendragonmultiverse/ai-placeholder-detector"
+Issues = "https://github.com/loganpendragonmultiverse/ai-placeholder-detector/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/placeholder_detector"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
