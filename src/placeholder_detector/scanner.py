@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -25,6 +26,7 @@ class Finding:
     path: str
     line: int
     excerpt: str
+    evidence_sha256: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -67,7 +69,7 @@ def scan(root: Path, excludes: tuple[str, ...] = (), minimum: str = "info") -> t
                 continue
             for rule in RULES:
                 if allowed[rule.severity] >= threshold and rule.pattern.search(line):
-                    findings.append(Finding(rule.id, rule.severity, rule.message, relative, number, _redact(line)))
+                    findings.append(Finding(rule.id, rule.severity, rule.message, relative, number, _redact(line), hashlib.sha256(" ".join(line.strip().split()).encode("utf-8")).hexdigest()))
     findings.sort(key=lambda item: (-allowed[item.severity], item.path, item.line, item.rule))
     return tuple(findings)
 

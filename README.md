@@ -53,10 +53,29 @@ python -m build
 
 ## Project status
 
-**Feature complete for v1.0.** New detection rules should be narrow, explainable, and backed by realistic tests.
+**Version 1.1 adds report comparison.** New detection rules should be narrow, explainable, and backed by realistic tests.
 
 Released under the [MIT License](LICENSE). Contributions follow the [organization guidelines](https://github.com/loganpendragonmultiverse/.github/blob/main/CONTRIBUTING.md).
 
 ## More open-source projects
 
 This project is part of the [Logan Pendragon Forge open-source collection](https://www.loganpendragonforge.com/open-source/). Browse the catalog for other released tools, source repositories, live demos, and downloads.
+
+## Compare a prior report
+
+Save `placeholder-detector . --format json --output prior.json`, then run
+`placeholder-detector . --baseline prior.json --format json --fail-on-new`.
+Text and JSON reports separate new, unchanged and resolved occurrences. Matching uses
+relative path, rule and a SHA-256 fingerprint of the full whitespace-normalized source
+line, ignoring line numbers. Duplicate lines consume separate occurrences. A moved
+path, changed rule or changed evidence is new. Inline ignores, exclusions, severity
+filters and `--fail-on-findings` still apply; compare with the same scan settings and
+root to interpret resolved findings. Resolved means absent from this scan, not fixed.
+
+Version 1.0 reports are accepted using their redacted, truncated excerpts; changes only
+beyond truncation or inside redacted text cannot be distinguished in those baselines.
+Version 1.1 retains redacted excerpts and stores full-line fingerprints, not raw lines.
+Fingerprints are not encryption and can reveal equality or allow guessing low-entropy
+lines. Baseline and output files inside the target are excluded during comparison.
+Invalid baselines return exit 2. `--fail-on-new` requires a baseline and returns exit 1
+only for new findings (or any findings if combined with `--fail-on-findings`).
