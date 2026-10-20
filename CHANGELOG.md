@@ -7,6 +7,7 @@
 - Prune ignored directories, avoid symlinks, bound source reads, and handle report-write failures.
 - Redact complete quoted secret assignments, including multiword values and quoted keys.
 - Build tested wheel/source distributions from the exact annotated release tag.
+- Require explicit --overwrite for existing reports and refuse symlink destinations.
 - Exclude report output from repeated scans even without a baseline.
 
 ## 1.1.0 - 2026-10-15

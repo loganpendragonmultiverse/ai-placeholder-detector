@@ -11,3 +11,7 @@ Release from the exact reviewed, protected-main merge using an annotated version
 tag. The tag workflow builds wheel and source distributions after tests; publish
 those exact artifacts and verify installed acceptance and public hashes. Keep all
 existing CI and default-setup CodeQL requirements.
+
+Preserve existing report files unless the operator explicitly passes --overwrite.
+Always reject existing symlink destinations, including dangling Windows links,
+before exclusive creation; do not infer safety from exists() alone.

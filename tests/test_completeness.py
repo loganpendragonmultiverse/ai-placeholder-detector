@@ -70,7 +70,7 @@ def test_output_is_self_excluded_without_baseline(tmp_path):
     (tmp_path / "app.py").write_text("# TODO real\n")
     output = tmp_path / "report.json"
     args = [str(tmp_path), "--format", "json", "--output", str(output)]
-    assert main(args) == main(args) == 0
+    assert main(args) == main(args + ["--overwrite"]) == 0
     assert json.loads(output.read_text())["count"] == 1
 
 
@@ -130,3 +130,41 @@ def test_unterminated_quoted_secret_is_fully_redacted(tmp_path, line):
     excerpt = scan(tmp_path)[0].excerpt
     assert "private" not in excerpt and "value" not in excerpt
     assert "[redacted]" in excerpt
+
+
+def test_existing_report_requires_explicit_overwrite(tmp_path):
+    output = tmp_path / "report.json"
+    output.write_text("previous report")
+    args = [str(tmp_path), "--format", "json", "--output", str(output)]
+    assert main(args) == 2
+    assert output.read_text() == "previous report"
+    assert main(args + ["--overwrite"]) == 0
+    assert json.loads(output.read_text())["complete"] is True
+
+
+@pytest.mark.parametrize("overwrite", [False, True])
+def test_dangling_output_symlink_is_refused(tmp_path, overwrite):
+    target = tmp_path / "absent-target"
+    output = tmp_path / "report.json"
+    try:
+        output.symlink_to(target)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+    args = [str(tmp_path), "--output", str(output)]
+    assert main(args + (["--overwrite"] if overwrite else [])) == 2
+    assert output.is_symlink() and not target.exists()
+
+
+def test_report_creation_race_preserves_other_writer(tmp_path, monkeypatch):
+    output = tmp_path / "report.json"
+    original = Path.open
+
+    def race(path, mode="r", *args, **kwargs):
+        if path == output and mode == "x":
+            with original(path, "w", encoding="utf-8") as handle:
+                handle.write("other writer")
+        return original(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", race)
+    assert main([str(tmp_path), "--output", str(output)]) == 2
+    assert output.read_text() == "other writer"

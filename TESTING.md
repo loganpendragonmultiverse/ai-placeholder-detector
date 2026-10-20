@@ -11,3 +11,6 @@ output failure, and unverified versus resolved baseline evidence. Run the comple
 test suite from both an installed wheel and an installed source distribution.
 
 Redaction fixtures include multiword quoted assignments and JSON-style quoted keys.
+
+Output regressions cover existing regular reports, explicit overwrite, dangling
+symlinks and a competing writer creating a regular file before open('x').
