@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 
-from .scanner import scan
+from .scanner import scan_report
 from .baseline import compare, load_baseline
 
 
@@ -29,20 +29,24 @@ def main(argv: list[str] | None = None) -> int:
     try:
         baseline = load_baseline(args.baseline) if args.baseline else None
         excludes = list(args.exclude)
-        if args.baseline:
+        if args.baseline or args.output:
             for report_path in (args.baseline, args.output):
                 if report_path:
                     try:
                         excludes.append(report_path.resolve().relative_to(Path(args.target).resolve()).as_posix())
                     except ValueError:
                         pass
-        findings = scan(Path(args.target), tuple(excludes), args.minimum)
+        scanned = scan_report(Path(args.target), tuple(excludes), args.minimum)
+        findings = scanned.findings
         comparison = compare(findings, baseline) if baseline is not None else None
+        if comparison is not None and scanned.skipped:
+            comparison["unverified"] = comparison["resolved"]
+            comparison["resolved"] = []
     except (OSError, ValueError) as exc:
         print(f"placeholder-detector: {exc}", file=sys.stderr)
         return 2
     if args.format == "json":
-        data = {"count": len(findings), "findings": [item.to_dict() for item in findings]}
+        data = {"count": len(findings), "findings": [item.to_dict() for item in findings], "complete": not scanned.skipped, "skipped": list(scanned.skipped)}
         if comparison is not None:
             data["comparison"] = comparison
         report = json.dumps(data, indent=2, ensure_ascii=False)
@@ -55,12 +59,21 @@ def main(argv: list[str] | None = None) -> int:
                 lines.append(f"{label.capitalize()}: {len(items)}")
                 for item in items:
                     lines.append(f"  {item['path']}:{item['line']} [{item['rule']}] {item['excerpt']}")
+        if scanned.skipped:
+            lines.append("Scan incomplete; skipped paths:")
+            lines.extend(f"  {item['path']} [{item['reason']}]" for item in scanned.skipped)
         report = "\n".join(lines)
-    if args.output:
-        args.output.write_text(report + "\n", encoding="utf-8")
-        print(f"Wrote {args.format} report to {args.output}")
-    else:
-        print(report)
+    try:
+        if args.output:
+            args.output.write_text(report + "\n", encoding="utf-8")
+            print(f"Wrote {args.format} report to {args.output}")
+        else:
+            print(report)
+    except (OSError, UnicodeError) as exc:
+        print(f"placeholder-detector: cannot write report: {exc}", file=sys.stderr)
+        return 2
+    if scanned.skipped:
+        return 2
     return 1 if (args.fail_on_findings and findings) or (args.fail_on_new and comparison and comparison["new"]) else 0
 
 
