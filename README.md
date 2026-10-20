@@ -53,7 +53,7 @@ python -m build
 
 ## Project status
 
-**Version 1.1 adds report comparison.** New detection rules should be narrow, explainable, and backed by realistic tests.
+**Version 1.2 adds scan-completeness evidence.** New detection rules should be narrow, explainable, and backed by realistic tests.
 
 Released under the [MIT License](LICENSE). Contributions follow the [organization guidelines](https://github.com/loganpendragonmultiverse/.github/blob/main/CONTRIBUTING.md).
 
@@ -79,3 +79,22 @@ Fingerprints are not encryption and can reveal equality or allow guessing low-en
 lines. Baseline and output files inside the target are excluded during comparison.
 Invalid baselines return exit 2. `--fail-on-new` requires a baseline and returns exit 1
 only for new findings (or any findings if combined with `--fail-on-findings`).
+
+## Scan completeness
+
+JSON reports include `complete` and a content-free `skipped` list. Unreadable
+source files/directories, invalid UTF-8, files larger than 2,000,000 bytes and
+symlinks make a scan incomplete; the CLI writes the evidence and returns exit 2.
+Symlinks are never followed; a selected root containing symlink components is rejected. Ignored directories, unsupported extensions and
+explicit exclusions are intentional scope choices, not incomplete-read warnings.
+The scanner prunes ignored directories rather than traversing their contents.
+
+When any path is skipped, unmatched baseline findings move to `unverified`, not
+`resolved`. Matching/new occurrences are still reported, but `--fail-on-new` cannot
+turn an incomplete scan into success. Resolve or explicitly exclude skipped paths
+before using the scan as a release check. Scan only a stable tree: concurrent file
+changes are not an atomic snapshot. Output/baseline files inside the target are
+excluded automatically. Output failures return exit 2.
+
+Python callers can use `scan_report()` for both findings and skipped paths; legacy
+`scan()` still returns findings only and does not certify complete inspection.
