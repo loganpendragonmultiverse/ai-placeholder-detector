@@ -98,3 +98,8 @@ excluded automatically. Output failures return exit 2.
 
 Python callers can use `scan_report()` for both findings and skipped paths; legacy
 `scan()` still returns findings only and does not certify complete inspection.
+
+Report output is created exclusively by default. Existing regular reports require
+`--overwrite`; symlink report paths are always refused, including dangling links.
+This protects ordinary destination collisions. Use stable, trusted output paths;
+concurrent hostile filesystem changes are outside the tool's guarantees.

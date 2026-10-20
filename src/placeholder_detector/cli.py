@@ -14,6 +14,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("target", nargs="?", default=".")
     result.add_argument("--format", choices=("text", "json"), default="text")
     result.add_argument("--output", type=Path)
+    result.add_argument("--overwrite", action="store_true", help="replace an existing regular report file")
     result.add_argument("--exclude", action="append", default=[], metavar="GLOB", help="exclude a repository-relative glob; repeat as needed")
     result.add_argument("--minimum", choices=("info", "warning", "error"), default="warning")
     result.add_argument("--fail-on-findings", action="store_true", help="exit 1 when findings remain")
@@ -65,11 +66,16 @@ def main(argv: list[str] | None = None) -> int:
         report = "\n".join(lines)
     try:
         if args.output:
-            args.output.write_text(report + "\n", encoding="utf-8")
+            if args.output.is_symlink():
+                raise ValueError("output must not be a symlink")
+            if args.output.exists() and not args.overwrite:
+                raise ValueError("output exists; use --overwrite to replace a regular report")
+            with args.output.open("w" if args.overwrite else "x", encoding="utf-8") as handle:
+                handle.write(report + "\n")
             print(f"Wrote {args.format} report to {args.output}")
         else:
             print(report)
-    except (OSError, UnicodeError) as exc:
+    except (OSError, UnicodeError, ValueError) as exc:
         print(f"placeholder-detector: cannot write report: {exc}", file=sys.stderr)
         return 2
     if scanned.skipped:
